@@ -110,7 +110,7 @@ public sealed class STPDebug : IDalamudPlugin
 
         if (ShowErrorWindow) DrawErrorWindow();
 
-        if (Service.PluginInterface.IsDevMenuOpen && (Service.PluginInterface.IsDev || PluginConfig.ShowInDevMenu))
+        if (Service.PluginInterface.IsDevMenuOpen)
         {
             if (ImGui.BeginMainMenuBar())
             {
