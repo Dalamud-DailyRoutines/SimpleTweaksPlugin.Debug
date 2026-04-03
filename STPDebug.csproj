@@ -1,0 +1,14 @@
+<Project Sdk="Dalamud.CN.NET.Sdk/14.0.2">
+    <PropertyGroup>
+        <Version>1.14.0.3</Version>
+        <Configurations>Debug;Release</Configurations>
+        <NoWarn>CS0649,CS0414,CS8618</NoWarn>
+        <BaseOutputPath>bin\</BaseOutputPath>
+        <OutputPath>bin\</OutputPath>
+        <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Update="images\icon.png" CopyToOutputDirectory="Always"/>
+    </ItemGroup>
+</Project>

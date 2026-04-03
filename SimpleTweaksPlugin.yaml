@@ -1,7 +1,0 @@
-name: Simple Tweaks Plugin
-author: Caraxi
-description: |-
-  这是一个仅保留调试器能力的 Simple Tweaks 精简分支。
-  插件只提供调试窗口与相关调试页面，不再包含任何 tweak 功能与配置界面。
-punchline: 现在它只做调试这一件事。
-repo_url: https://github.com/Caraxi/SimpleTweaksPlugin

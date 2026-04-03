@@ -1,6 +1,7 @@
-﻿namespace SimpleTweaksPlugin.Enums; 
+﻿namespace STPDebug.Enums;
 
-public enum LinkHandlerId : uint {
+public enum LinkHandlerId : uint
+{
     OpenFolderLink,
     OpenUrlLink,
     CraftingActionInfoIdentifier,

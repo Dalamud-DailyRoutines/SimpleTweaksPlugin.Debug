@@ -1,0 +1,10 @@
+<Solution>
+    <Configurations>
+        <BuildType Name="Debug"/>
+        <BuildType Name="Release"/>
+        <Platform Name="x64"/>
+    </Configurations>
+    <Project Path="STPDebug.csproj">
+        <Platform Project="x64"/>
+    </Project>
+</Solution>

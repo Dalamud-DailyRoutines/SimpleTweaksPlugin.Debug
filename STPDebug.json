@@ -1,0 +1,9 @@
+{
+    "Author": "Caraxi, AtmoOmen",
+    "Name": "STPDebug",
+    "Punchline": "Simple Tweaks Plugin With Only Debuggers",
+    "Description": "",
+    "IconUrl": "https://raw.githubusercontent.com/Dalamud-DailyRoutines/SimpleTweaksPlugin.Debug/main/images/icon.png",
+    "RepoUrl": "https://github.com/Dalamud-DailyRoutines/SimpleTweaksPlugin.Debug",
+    "ApplicableVersion": "any"
+}

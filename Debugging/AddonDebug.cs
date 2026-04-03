@@ -3,127 +3,163 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Memory;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using Dalamud.Bindings.ImGui;
-using SimpleTweaksPlugin.Utility;
+using STPDebug.Utility;
 using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
-namespace SimpleTweaksPlugin.Debugging; 
+namespace STPDebug.Debugging;
 
-public unsafe class AddonDebug : DebugHelper {
+public unsafe class AddonDebug : DebugHelper
+{
     public override string Name => "Addon Logging";
 
     private delegate void* FireCallbackDelegate(AtkUnitBase* atkUnitBase, int valueCount, AtkValue* atkValues, byte updateVisibility);
+
     private HookWrapper<FireCallbackDelegate> fireCallbackHook;
-    private bool enabled;
+    private bool                              enabled;
 
     public delegate void* OnSetupDelegate(AtkUnitBase* atkUnitBase, int valueCount, AtkValue* atkValues);
+
     private static Dictionary<string, SetupHook> setupHooks = new();
 
     private delegate void* ListHandlerSetupDelegate(void* a1, AtkUnitBase* a2, void* a3);
+
     private HookWrapper<ListHandlerSetupDelegate> listHandlerSetupHook;
 
     private delegate byte* FormatAddonTextDelegate(RaptureTextModule* raptureTextModule, uint addonTextId, int a3, void* a4, void** a5, void** a6);
+
     private HookWrapper<FormatAddonTextDelegate> formatAddonTextHook;
 
-    public static bool IsSetupHooked(AtkUnitBase* atkUnitBase) {
-        return setupHooks.ContainsKey(atkUnitBase->NameString);
+    public static bool IsSetupHooked(AtkUnitBase* atkUnitBase) =>
+        setupHooks.ContainsKey(atkUnitBase->NameString);
+
+    public class Callback
+    {
+        public string          AtkUnitBaseName = string.Empty;
+        public List<object>    AtkValues       = new();
+        public List<ValueType> AtkValueTypes   = new();
+        public void*           ReturnValue;
+        public AtkUnitBase*    AtkUnitBase;
+        public byte            UpdateVisibility;
     }
 
-    public class Callback {
-        public string AtkUnitBaseName = string.Empty;
-        public List<object> AtkValues = new();
-        public List<ValueType> AtkValueTypes = new();
-        public void* ReturnValue;
-        public AtkUnitBase* AtkUnitBase;
-        public byte UpdateVisibility;
-    }
-
-    public class SetupCall {
-        public string AtkUnitBaseName = string.Empty;
-        public List<object> AtkValues = new();
-        public List<ValueType> AtkValueTypes = new();
-        public void* ReturnValue;
-        public AtkUnitBase* AtkUnitBase;
+    public class SetupCall
+    {
+        public string          AtkUnitBaseName = string.Empty;
+        public List<object>    AtkValues       = new();
+        public List<ValueType> AtkValueTypes   = new();
+        public void*           ReturnValue;
+        public AtkUnitBase*    AtkUnitBase;
     }
 
 
-    public unsafe class SetupHook{
+    public class SetupHook
+    {
         public HookWrapper<OnSetupDelegate> Hook;
-        public List<SetupCall> Calls = new();
+        public List<SetupCall>              Calls = new();
 
-        public SetupHook(AtkUnitBase* unitBase) {
+        public SetupHook(AtkUnitBase* unitBase) =>
             Hook = Common.Hook<OnSetupDelegate>(unitBase->VirtualTable->OnSetup, SetupDetour);
-        }
 
-        public void* SetupDetour(AtkUnitBase* atkUnitBase, int valueCount, AtkValue* atkValues) {
-            var atkValueList = new List<object>();
+        public void* SetupDetour(AtkUnitBase* atkUnitBase, int valueCount, AtkValue* atkValues)
+        {
+            var atkValueList     = new List<object>();
             var atkValueTypeList = new List<ValueType>();
-            try {
+
+            try
+            {
                 var a = atkValues;
-                for (var i = 0; i < valueCount; i++) {
+
+                for (var i = 0; i < valueCount; i++)
+                {
                     atkValueTypeList.Add(a->Type);
-                    switch (a->Type) {
-                        case ValueType.Int: {
+
+                    switch (a->Type)
+                    {
+                        case ValueType.Int:
+                        {
                             atkValueList.Add(a->Int);
                             break;
                         }
                         case ValueType.String8:
-                        case ValueType.String: {
+                        case ValueType.String:
+                        {
                             atkValueList.Add(Marshal.PtrToStringUTF8(new IntPtr(a->String)) ?? string.Empty);
                             break;
                         }
-                        case ValueType.UInt: {
+                        case ValueType.UInt:
+                        {
                             atkValueList.Add(a->UInt);
                             break;
                         }
-                        case ValueType.Bool: {
+                        case ValueType.Bool:
+                        {
                             atkValueList.Add(a->Byte != 0);
                             break;
                         }
-                        default: {
+                        default:
+                        {
                             atkValueList.Add($"Unknown Type: {a->Type}");
                             break;
                         }
                     }
+
                     a++;
                 }
-            } catch {
+            }
+            catch
+            {
                 return Hook.Original(atkUnitBase, valueCount, atkValues);
             }
+
             var ret = Hook.Original(atkUnitBase, valueCount, atkValues);
-            try {
-                Calls.Insert(0, new SetupCall() {
-                    AtkUnitBaseName = atkUnitBase->NameString,
-                    AtkUnitBase = atkUnitBase,
-                    ReturnValue = ret,
-                    AtkValues = atkValueList,
-                    AtkValueTypes = atkValueTypeList,
-                });
-            } catch {
+
+            try
+            {
+                Calls.Insert
+                (
+                    0,
+                    new SetupCall
+                    {
+                        AtkUnitBaseName = atkUnitBase->NameString,
+                        AtkUnitBase     = atkUnitBase,
+                        ReturnValue     = ret,
+                        AtkValues       = atkValueList,
+                        AtkValueTypes   = atkValueTypeList
+                    }
+                );
+            }
+            catch
+            {
                 //
             }
 
             return ret;
         }
-
     }
 
 
     public List<Callback> Callbacks = new();
 
-    public override void Draw() {
+    public override void Draw()
+    {
 
 
-        if (ImGui.BeginTabBar("addonCallLoggingTabs")) {
+        if (ImGui.BeginTabBar("addonCallLoggingTabs"))
+        {
 
-            if (ImGui.BeginTabItem("Callbacks")) {
+            if (ImGui.BeginTabItem("Callbacks"))
+            {
 
-                if (ImGui.Checkbox($"Enable Logging", ref enabled)) {
+                if (ImGui.Checkbox($"Enable Logging", ref enabled))
+                {
                     fireCallbackHook?.Disable();
-                    if (enabled) {
+
+                    if (enabled)
+                    {
                         fireCallbackHook ??= Common.Hook<FireCallbackDelegate>("E8 ?? ?? ?? ?? 0F B6 E8 8B 44 24 20", CallbackDetour);
                         fireCallbackHook?.Enable();
                     }
@@ -135,26 +171,24 @@ public unsafe class AddonDebug : DebugHelper {
                 ImGui.InputText("##searchCallbacks", ref callbacksSearch, 50);
 
                 ImGui.SameLine();
-                if (ImGui.Button("Clear")) {
-                    Callbacks.Clear();
-                }
+                if (ImGui.Button("Clear")) Callbacks.Clear();
                 ImGui.Separator();
 
-                if (ImGui.BeginTable("callbacksTable", 4, ImGuiTableFlags.RowBg)) {
-                    ImGui.TableSetupColumn("Addon", ImGuiTableColumnFlags.WidthFixed, 150);
-                    ImGui.TableSetupColumn("Values", ImGuiTableColumnFlags.WidthFixed, 300);
+                if (ImGui.BeginTable("callbacksTable", 4, ImGuiTableFlags.RowBg))
+                {
+                    ImGui.TableSetupColumn("Addon",             ImGuiTableColumnFlags.WidthFixed, 150);
+                    ImGui.TableSetupColumn("Values",            ImGuiTableColumnFlags.WidthFixed, 300);
                     ImGui.TableSetupColumn("Update visibility", ImGuiTableColumnFlags.WidthFixed, 150);
-                    ImGui.TableSetupColumn("Return", ImGuiTableColumnFlags.WidthFixed, 60);
+                    ImGui.TableSetupColumn("Return",            ImGuiTableColumnFlags.WidthFixed, 60);
 
                     ImGui.TableHeadersRow();
 
-                    foreach (var cb in Callbacks.Where(cb => callbacksSearch.Length < 0 || cb.AtkUnitBaseName.Contains(callbacksSearch))) {
+                    foreach (var cb in Callbacks.Where(cb => callbacksSearch.Length < 0 || cb.AtkUnitBaseName.Contains(callbacksSearch)))
+                    {
                         ImGui.TableNextColumn();
                         ImGui.Text($"{cb.AtkUnitBaseName}");
                         ImGui.TableNextColumn();
-                        for (var i = 0; i < cb.AtkValues.Count; i++) {
-                            ImGui.Text($"{i} [{cb.AtkValueTypes[i]}]:   {cb.AtkValues[i]}");
-                        }
+                        for (var i = 0; i < cb.AtkValues.Count; i++) ImGui.Text($"{i} [{cb.AtkValueTypes[i]}]:   {cb.AtkValues[i]}");
 
                         ImGui.TableNextColumn();
                         ImGui.Text($"{cb.UpdateVisibility}");
@@ -168,44 +202,50 @@ public unsafe class AddonDebug : DebugHelper {
                 ImGui.EndTabItem();
             }
 
-            if (ImGui.BeginTabItem("Setups")) {
-                if (setupHooks.Count > 0) {
-                    if (ImGui.BeginTabBar("addonCallSetups")) {
-                        foreach (var (name, hook) in setupHooks) {
+            if (ImGui.BeginTabItem("Setups"))
+            {
+                if (setupHooks.Count > 0)
+                {
+                    if (ImGui.BeginTabBar("addonCallSetups"))
+                    {
+                        foreach (var (name, hook) in setupHooks)
+                        {
                             if (hook.Hook.IsDisposed) continue;
-                            if (ImGui.BeginTabItem($"{name}##setupHookTab")) {
+
+                            if (ImGui.BeginTabItem($"{name}##setupHookTab"))
+                            {
                                 var e = hook.Hook.IsEnabled;
 
-                                if (ImGui.Checkbox($"Enable Logging##setupHookEnabledCheckbox{name}", ref e)) {
-                                    if (e) {
-                                        hook.Hook.Enable();
-                                    } else {
-                                        hook.Hook.Disable();
-                                    }
+                                if (ImGui.Checkbox($"Enable Logging##setupHookEnabledCheckbox{name}", ref e))
+                                {
+                                    if (e) hook.Hook.Enable();
+                                    else hook.Hook.Disable();
                                 }
 
                                 ImGui.SameLine();
-                                if (ImGui.Button($"Remove Hook##setupHookRemoveButton{name}")) {
+
+                                if (ImGui.Button($"Remove Hook##setupHookRemoveButton{name}"))
+                                {
                                     hook.Hook.Dispose();
                                     hook.Calls.Clear();
                                 }
 
                                 ImGui.Separator();
 
-                                if (ImGui.BeginTable("callbacksTable", 3, ImGuiTableFlags.RowBg)) {
-                                    ImGui.TableSetupColumn("Addon", ImGuiTableColumnFlags.WidthFixed, 150);
+                                if (ImGui.BeginTable("callbacksTable", 3, ImGuiTableFlags.RowBg))
+                                {
+                                    ImGui.TableSetupColumn("Addon",  ImGuiTableColumnFlags.WidthFixed, 150);
                                     ImGui.TableSetupColumn("Values", ImGuiTableColumnFlags.WidthFixed, 300);
                                     ImGui.TableSetupColumn("Return", ImGuiTableColumnFlags.WidthFixed, 90);
 
                                     ImGui.TableHeadersRow();
 
-                                    foreach (var cb in hook.Calls) {
+                                    foreach (var cb in hook.Calls)
+                                    {
                                         ImGui.TableNextColumn();
                                         ImGui.Text($"{cb.AtkUnitBaseName}");
                                         ImGui.TableNextColumn();
-                                        for (var i = 0; i < cb.AtkValues.Count; i++) {
-                                            ImGui.Text($"{i} [{cb.AtkValueTypes[i]}]:   {cb.AtkValues[i]}");
-                                        }
+                                        for (var i = 0; i < cb.AtkValues.Count; i++) ImGui.Text($"{i} [{cb.AtkValueTypes[i]}]:   {cb.AtkValues[i]}");
 
                                         ImGui.TableNextColumn();
                                         DebugManager.ClickToCopyText($"{(ulong)cb.ReturnValue:X}");
@@ -220,47 +260,46 @@ public unsafe class AddonDebug : DebugHelper {
                         }
 
 
-
                         ImGui.EndTabBar();
                     }
 
-                } else {
-                    ImGui.Text("No hooks are enabled.");
                 }
-
-
-
+                else ImGui.Text("No hooks are enabled.");
 
 
                 ImGui.EndTabItem();
             }
 
-            if (ImGui.BeginTabItem("List Handlers")) {
+            if (ImGui.BeginTabItem("List Handlers"))
+            {
 
                 listHandlerSetupHook ??= Common.Hook("E8 ?? ?? ?? ?? 41 B1 1E", new ListHandlerSetupDelegate(ListHandlerSetupDetour));
 
                 var e = listHandlerSetupHook.IsEnabled;
-                if (ImGui.Checkbox("Log List Handler Setups", ref e)) {
+
+                if (ImGui.Checkbox("Log List Handler Setups", ref e))
+                {
                     if (e)
                         listHandlerSetupHook?.Enable();
                     else
                         listHandlerSetupHook?.Disable();
                 }
+
                 ImGui.SameLine();
-                if (ImGui.Button("Clear##clearListHandlers")) {
-                    listHandlerSetupCalls.Clear();
-                }
+                if (ImGui.Button("Clear##clearListHandlers")) listHandlerSetupCalls.Clear();
 
                 ImGui.Separator();
 
-                if (ImGui.BeginTable("ListHandlerSetups", 3)) {
+                if (ImGui.BeginTable("ListHandlerSetups", 3))
+                {
                     ImGui.TableSetupColumn("this");
                     ImGui.TableSetupColumn("Addon");
                     ImGui.TableSetupColumn("Callback");
 
                     ImGui.TableHeadersRow();
 
-                    foreach (var l in listHandlerSetupCalls) {
+                    foreach (var l in listHandlerSetupCalls)
+                    {
                         ImGui.TableNextColumn();
                         DebugManager.ClickToCopy(l.This);
                         ImGui.TableNextColumn();
@@ -268,30 +307,36 @@ public unsafe class AddonDebug : DebugHelper {
                         ImGui.TableNextColumn();
                         DebugManager.ClickToCopy(l.UpdateItemCallback);
 
-                        var addr = (ulong) l.UpdateItemCallback;
-                        if (addr > 0) {
-                            var baseAddr = (ulong) (Process.GetCurrentProcess().MainModule?.BaseAddress ?? throw new Exception("Failed to get BaseAddress"));
-                            var offset = addr - baseAddr;
+                        var addr = (ulong)l.UpdateItemCallback;
+
+                        if (addr > 0)
+                        {
+                            var baseAddr = (ulong)(Process.GetCurrentProcess().MainModule?.BaseAddress ?? throw new Exception("Failed to get BaseAddress"));
+                            var offset   = addr - baseAddr;
                             ImGui.SameLine();
                             DebugManager.ClickToCopyText($"ffxiv_dx11.exe+{offset:X}");
                         }
                     }
+
                     ImGui.EndTable();
                 }
+
                 ImGui.EndTabItem();
             }
 
-            if (ImGui.BeginTabItem("Addon Text")) {
+            if (ImGui.BeginTabItem("Addon Text"))
+            {
 
                 var addonTextLoggingEnabled = formatAddonTextHook?.IsEnabled ?? false;
 
-                if (ImGui.Checkbox("Enable Logging##addonTextLoggingToggle", ref addonTextLoggingEnabled)) {
-                    if (addonTextLoggingEnabled) {
+                if (ImGui.Checkbox("Enable Logging##addonTextLoggingToggle", ref addonTextLoggingEnabled))
+                {
+                    if (addonTextLoggingEnabled)
+                    {
                         formatAddonTextHook ??= Common.Hook<FormatAddonTextDelegate>("E8 ?? ?? ?? ?? 48 8D 4F 40 48 8B D0", FormatAddonTextDetour);
                         formatAddonTextHook?.Enable();
-                    } else {
-                        formatAddonTextHook?.Disable();
                     }
+                    else formatAddonTextHook?.Disable();
                 }
 
                 ImGui.Separator();
@@ -301,69 +346,91 @@ public unsafe class AddonDebug : DebugHelper {
             ImGui.EndTabBar();
         }
     }
-    
-    private byte* FormatAddonTextDetour(RaptureTextModule* raptureTextModule, uint addonTextId, int a3, void* a4, void** a5, void** a6) {
+
+    private byte* FormatAddonTextDetour(RaptureTextModule* raptureTextModule, uint addonTextId, int a3, void* a4, void** a5, void** a6)
+    {
         var retVal = formatAddonTextHook.Original(raptureTextModule, addonTextId, a3, a4, a5, a6);
 
-        try {
-            if (retVal != null) {
+        try
+        {
+            if (retVal != null)
+            {
                 var str = MemoryHelper.ReadSeStringNullTerminated(new IntPtr(retVal));
                 SimpleLog.Log($"Format Addon Text: {addonTextId} -> {str.TextValue}");
-            } else {
-                SimpleLog.Log($"Format Addon Text: {addonTextId} -> Returning NULL");
             }
+            else SimpleLog.Log($"Format Addon Text: {addonTextId} -> Returning NULL");
 
 
-
-        } catch (Exception ex) {
+        }
+        catch (Exception ex)
+        {
             SimpleLog.Error(ex);
         }
-
-
 
 
         return retVal;
     }
 
-    public class ListHandlerSetupCall {
+    public class ListHandlerSetupCall
+    {
         public string AtkUnitBaseName;
-        public void* UpdateItemCallback;
-        public void* This;
+        public void*  UpdateItemCallback;
+        public void*  This;
     }
 
     private List<ListHandlerSetupCall> listHandlerSetupCalls = new();
 
 
-    private void* ListHandlerSetupDetour(void* a1, AtkUnitBase* atkUnitBase, void* updateItemCallback) {
+    private void* ListHandlerSetupDetour(void* a1, AtkUnitBase* atkUnitBase, void* updateItemCallback)
+    {
         var retVal = listHandlerSetupHook.Original(a1, atkUnitBase, updateItemCallback);
-        try {
-            listHandlerSetupCalls.Insert(0, new ListHandlerSetupCall() {
-                This = a1,
-                UpdateItemCallback = updateItemCallback,
-                AtkUnitBaseName = atkUnitBase->NameString,
-            });
-        } catch {
+
+        try
+        {
+            listHandlerSetupCalls.Insert
+            (
+                0,
+                new ListHandlerSetupCall
+                {
+                    This               = a1,
+                    UpdateItemCallback = updateItemCallback,
+                    AtkUnitBaseName    = atkUnitBase->NameString
+                }
+            );
+        }
+        catch
+        {
             //
         }
+
         return retVal;
     }
 
-    public static void HookOnSetup(AtkUnitBase* atkUnitBase) {
+    public static void HookOnSetup(AtkUnitBase* atkUnitBase)
+    {
         var name = atkUnitBase->NameString;
         setupHooks.Add(name, new SetupHook(atkUnitBase));
     }
 
     private string callbacksSearch = string.Empty;
 
-    private void* CallbackDetour(AtkUnitBase* atkunitbase, int valuecount, AtkValue* atkvalues, byte updateVisibility) {
-        var atkValueList = new List<object>();
+    private void* CallbackDetour(AtkUnitBase* atkunitbase, int valuecount, AtkValue* atkvalues, byte updateVisibility)
+    {
+        var atkValueList     = new List<object>();
         var atkValueTypeList = new List<ValueType>();
-        try {
+
+        try
+        {
             var a = atkvalues;
-            for (var i = 0; i < valuecount; i++) {
+
+            for (var i = 0; i < valuecount; i++)
+            {
                 atkValueTypeList.Add(a->Type);
-                switch (a->Type) {
-                    case ValueType.Int: {
+
+                switch (a->Type)
+                {
+                    case ValueType.Int:
+                    {
                         atkValueList.Add(a->Int);
                         break;
                     }
@@ -372,54 +439,70 @@ public unsafe class AddonDebug : DebugHelper {
                         atkValueList.Add(Marshal.PtrToStringUTF8(new IntPtr(a->String)) ?? string.Empty);
                         break;
                     }
-                    case ValueType.UInt: {
+                    case ValueType.UInt:
+                    {
                         atkValueList.Add(a->UInt);
                         break;
                     }
-                    case ValueType.Bool: {
+                    case ValueType.Bool:
+                    {
                         atkValueList.Add(a->Byte != 0);
                         break;
                     }
-                    default: {
+                    default:
+                    {
                         atkValueList.Add($"Unknown Type: {a->Type}");
                         break;
                     }
                 }
+
                 a++;
             }
-        } catch {
+        }
+        catch
+        {
             return fireCallbackHook.Original(atkunitbase, valuecount, atkvalues, updateVisibility);
         }
+
         var ret = fireCallbackHook.Original(atkunitbase, valuecount, atkvalues, updateVisibility);
-        try {
-            Callbacks.Insert(0, new Callback() {
-                AtkUnitBaseName = atkunitbase->NameString,
-                UpdateVisibility = updateVisibility,
-                AtkUnitBase = atkunitbase,
-                ReturnValue = ret,
-                AtkValues = atkValueList,
-                AtkValueTypes = atkValueTypeList,
-            });
 
-            if (Callbacks.Count > 1000) {
-                Callbacks.RemoveRange(1000, Callbacks.Count - 1000);
-            }
+        try
+        {
+            Callbacks.Insert
+            (
+                0,
+                new Callback
+                {
+                    AtkUnitBaseName  = atkunitbase->NameString,
+                    UpdateVisibility = updateVisibility,
+                    AtkUnitBase      = atkunitbase,
+                    ReturnValue      = ret,
+                    AtkValues        = atkValueList,
+                    AtkValueTypes    = atkValueTypeList
+                }
+            );
 
-        } catch {
+            if (Callbacks.Count > 1000) Callbacks.RemoveRange(1000, Callbacks.Count - 1000);
+
+        }
+        catch
+        {
             //
         }
 
         return ret;
     }
 
-    public override void Dispose() {
+    public override void Dispose()
+    {
         fireCallbackHook?.Disable();
         fireCallbackHook?.Dispose();
 
         formatAddonTextHook?.Disable();
         formatAddonTextHook?.Dispose();
 
-        foreach (var h in setupHooks.Values) {
+        foreach (var h in setupHooks.Values)
+        {
             if (h.Hook.IsDisposed) continue;
             h.Hook.Disable();
             h.Hook.Dispose();

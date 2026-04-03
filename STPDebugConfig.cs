@@ -1,20 +1,24 @@
 using Dalamud.Configuration;
+using STPDebug.Debugging;
 
-namespace SimpleTweaksPlugin;
+namespace STPDebug;
 
-public partial class SimpleTweaksPluginConfig : IPluginConfiguration {
+public class STPDebugConfig : IPluginConfiguration
+{
     public int Version { get; set; } = 1;
 
     public bool DisableAutoOpenDebug;
     public bool ShowInDevMenu;
     public bool NoCallerInLog;
 
-    public Debugging.DebugConfig Debugging { get; set; } = new();
+    public DebugConfig Debugging { get; set; } = new();
 
-    public void Init(SimpleTweaksPlugin plugin) {
+    public void Init()
+    {
     }
 
-    public void Save() {
+    public void Save()
+    {
 #if !TEST
         Service.PluginInterface.SavePluginConfig(this);
 #endif

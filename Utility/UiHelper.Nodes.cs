@@ -4,17 +4,23 @@ using System.Linq;
 using FFXIVClientStructs.FFXIV.Client.System.Memory;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
-namespace SimpleTweaksPlugin.Utility;
+namespace STPDebug.Utility;
 
 public static unsafe partial class UiHelper
 {
-    public record PartInfo(ushort U, ushort V, ushort Width, ushort Height);
-    
+    public record PartInfo
+    (
+        ushort U,
+        ushort V,
+        ushort Width,
+        ushort Height
+    );
+
     /// <summary>
-    /// Makes an image node with allocated and initialized components:<br/>
-    /// 1x AtkUldPartsList<br/>
-    /// 1x AtkUldPart<br/>
-    /// 1x AtkUldAsset<br/>
+    ///     Makes an image node with allocated and initialized components:<br />
+    ///     1x AtkUldPartsList<br />
+    ///     1x AtkUldPart<br />
+    ///     1x AtkUldAsset<br />
     /// </summary>
     /// <param name="id">Id of the new node</param>
     /// <param name="partInfo">Texture U,V coordinates and Texture Width,Height</param>
@@ -59,8 +65,8 @@ public static unsafe partial class UiHelper
     }
 
     /// <summary>
-    /// Checks if the addon has a valid root and child node.<br/>
-    /// Useful for ensuring that an addon is fully loaded before adding new UI nodes to it.
+    ///     Checks if the addon has a valid root and child node.<br />
+    ///     Useful for ensuring that an addon is fully loaded before adding new UI nodes to it.
     /// </summary>
     /// <param name="addon">Pointer to addon to check</param>
     public static bool IsAddonReady(AtkUnitBase* addon)
@@ -81,47 +87,51 @@ public static unsafe partial class UiHelper
 
     public static void LinkNodeAtEnd(AtkResNode* imageNode, AtkUnitBase* parent)
     {
-        var node = parent->RootNode->ChildNode;
+        var node                                   = parent->RootNode->ChildNode;
         while (node->PrevSiblingNode != null) node = node->PrevSiblingNode;
 
-        node->PrevSiblingNode = imageNode;
+        node->PrevSiblingNode      = imageNode;
         imageNode->NextSiblingNode = node;
-        imageNode->ParentNode = node->ParentNode;
-        
+        imageNode->ParentNode      = node->ParentNode;
+
         parent->UldManager.UpdateDrawNodeList();
     }
 
-    public static void LinkNodeAtEnd(AtkResNode* imageNode, AtkComponentBase* parent) {
-        var node = parent->UldManager.RootNode;
+    public static void LinkNodeAtEnd(AtkResNode* imageNode, AtkComponentBase* parent)
+    {
+        var node                                   = parent->UldManager.RootNode;
         while (node->PrevSiblingNode != null) node = node->PrevSiblingNode;
 
-        node->PrevSiblingNode = imageNode;
+        node->PrevSiblingNode      = imageNode;
         imageNode->NextSiblingNode = node;
-        imageNode->ParentNode = node->ParentNode;
-        
+        imageNode->ParentNode      = node->ParentNode;
+
         parent->UldManager.UpdateDrawNodeList();
     }
 
-    public static void LinkNodeAtEnd<T>(T* atkNode, AtkResNode* parentNode, AtkUnitBase* addon) where T : unmanaged {
-        var node = (AtkResNode*)atkNode;
+    public static void LinkNodeAtEnd<T>(T* atkNode, AtkResNode* parentNode, AtkUnitBase* addon) where T : unmanaged
+    {
+        var node    = (AtkResNode*)atkNode;
         var endNode = parentNode->ChildNode;
-        if (endNode == null) {
+
+        if (endNode == null)
+        {
             // Adding to empty res node
-            
+
             parentNode->ChildNode = node;
-            node->ParentNode = parentNode;
+            node->ParentNode      = parentNode;
             node->PrevSiblingNode = null;
             node->NextSiblingNode = null;
-        } else {
-            while (endNode->PrevSiblingNode != null) {
-                endNode = endNode->PrevSiblingNode;
-            }
-            node->ParentNode = parentNode;
-            node->NextSiblingNode = endNode;
-            node->PrevSiblingNode = null;
+        }
+        else
+        {
+            while (endNode->PrevSiblingNode != null) endNode = endNode->PrevSiblingNode;
+            node->ParentNode         = parentNode;
+            node->NextSiblingNode    = endNode;
+            node->PrevSiblingNode    = null;
             endNode->PrevSiblingNode = node;
         }
-        
+
         addon->UldManager.UpdateDrawNodeList();
     }
 
@@ -130,24 +140,26 @@ public static unsafe partial class UiHelper
         node->ParentNode = targetNode->ParentNode;
 
         // We have a node that will be after us
-        if (targetNode->PrevSiblingNode is not null) {
+        if (targetNode->PrevSiblingNode is not null)
+        {
             targetNode->PrevSiblingNode->NextSiblingNode = node;
-            node->PrevSiblingNode = targetNode->PrevSiblingNode;
+            node->PrevSiblingNode                        = targetNode->PrevSiblingNode;
         }
 
         targetNode->PrevSiblingNode = node;
-        node->NextSiblingNode = targetNode;
+        node->NextSiblingNode       = targetNode;
 
         parent->Component->UldManager.UpdateDrawNodeList();
     }
-    
-    public static void LinkNodeAfterTargetNode<T>(T* atkNode, AtkUnitBase* parent, AtkResNode* targetNode) where T : unmanaged {
+
+    public static void LinkNodeAfterTargetNode<T>(T* atkNode, AtkUnitBase* parent, AtkResNode* targetNode) where T : unmanaged
+    {
         var node = (AtkResNode*)atkNode;
         var prev = targetNode->PrevSiblingNode;
         node->ParentNode = targetNode->ParentNode;
 
         targetNode->PrevSiblingNode = node;
-        prev->NextSiblingNode = node;
+        prev->NextSiblingNode       = node;
 
         node->PrevSiblingNode = prev;
         node->NextSiblingNode = targetNode;
@@ -155,70 +167,59 @@ public static unsafe partial class UiHelper
         parent->UldManager.UpdateDrawNodeList();
     }
 
-    public static void UnlinkNode<T>(T* atkNode, AtkComponentNode* componentNode) where T : unmanaged {
+    public static void UnlinkNode<T>(T* atkNode, AtkComponentNode* componentNode) where T : unmanaged
+    {
 
         var node = (AtkResNode*)atkNode;
         if (node == null) return;
-        
-        if (node->ParentNode->ChildNode == node) {
-            node->ParentNode->ChildNode = node->NextSiblingNode;
-        }
 
-        if (node->NextSiblingNode != null && node->NextSiblingNode->PrevSiblingNode == node) {
-            node->NextSiblingNode->PrevSiblingNode = node->PrevSiblingNode;
-        }
+        if (node->ParentNode->ChildNode == node) node->ParentNode->ChildNode = node->NextSiblingNode;
 
-        if (node->PrevSiblingNode != null && node->PrevSiblingNode->NextSiblingNode == node) {
-            node->PrevSiblingNode->NextSiblingNode = node->NextSiblingNode;
-        }
-        
+        if (node->NextSiblingNode != null && node->NextSiblingNode->PrevSiblingNode == node) node->NextSiblingNode->PrevSiblingNode = node->PrevSiblingNode;
+
+        if (node->PrevSiblingNode != null && node->PrevSiblingNode->NextSiblingNode == node) node->PrevSiblingNode->NextSiblingNode = node->NextSiblingNode;
+
         componentNode->Component->UldManager.UpdateDrawNodeList();
     }
-    
-    public static void UnlinkNode<T>(T* atkNode, AtkUnitBase* unitBase) where T : unmanaged {
+
+    public static void UnlinkNode<T>(T* atkNode, AtkUnitBase* unitBase) where T : unmanaged
+    {
 
         var node = (AtkResNode*)atkNode;
         if (node == null) return;
-        
-        if (node->ParentNode->ChildNode == node) {
-            node->ParentNode->ChildNode = node->NextSiblingNode;
-        }
 
-        if (node->NextSiblingNode != null && node->NextSiblingNode->PrevSiblingNode == node) {
-            node->NextSiblingNode->PrevSiblingNode = node->PrevSiblingNode;
-        }
+        if (node->ParentNode->ChildNode == node) node->ParentNode->ChildNode = node->NextSiblingNode;
 
-        if (node->PrevSiblingNode != null && node->PrevSiblingNode->NextSiblingNode == node) {
-            node->PrevSiblingNode->NextSiblingNode = node->NextSiblingNode;
-        }
-        
+        if (node->NextSiblingNode != null && node->NextSiblingNode->PrevSiblingNode == node) node->NextSiblingNode->PrevSiblingNode = node->PrevSiblingNode;
+
+        if (node->PrevSiblingNode != null && node->PrevSiblingNode->NextSiblingNode == node) node->PrevSiblingNode->NextSiblingNode = node->NextSiblingNode;
+
         unitBase->UldManager.UpdateDrawNodeList();
     }
 
-    
-    
+
     public static void UnlinkAndFreeImageNode(AtkImageNode* node, AtkUnitBase* parent)
     {
         if (node->AtkResNode.PrevSiblingNode is not null)
             node->AtkResNode.PrevSiblingNode->NextSiblingNode = node->AtkResNode.NextSiblingNode;
-            
+
         if (node->AtkResNode.NextSiblingNode is not null)
             node->AtkResNode.NextSiblingNode->PrevSiblingNode = node->AtkResNode.PrevSiblingNode;
-            
+
         parent->UldManager.UpdateDrawNodeList();
 
         FreePartsList(node->PartsList);
         FreeImageNode(node);
     }
-    
+
     public static void UnlinkAndFreeTextNode(AtkTextNode* node, AtkUnitBase* parent)
     {
         if (node->AtkResNode.PrevSiblingNode is not null)
             node->AtkResNode.PrevSiblingNode->NextSiblingNode = node->AtkResNode.NextSiblingNode;
-            
+
         if (node->AtkResNode.NextSiblingNode is not null)
             node->AtkResNode.NextSiblingNode->PrevSiblingNode = node->AtkResNode.PrevSiblingNode;
-            
+
         parent->UldManager.UpdateDrawNodeList();
         FreeTextNode(node);
     }
@@ -231,26 +232,27 @@ public static unsafe partial class UiHelper
 
         if (textNode is not null)
         {
-            textNode->AtkResNode.Type = NodeType.Text;
+            textNode->AtkResNode.Type   = NodeType.Text;
             textNode->AtkResNode.NodeId = id;
             return true;
         }
 
         return false;
     }
-    
-    public static bool TryMakeImageNode(uint id, NodeFlags resNodeFlags, uint resNodeDrawFlags, byte wrapMode, ImageNodeFlags imageNodeFlags, [NotNullWhen(true)] out AtkImageNode* imageNode)
+
+    public static bool TryMakeImageNode
+        (uint id, NodeFlags resNodeFlags, uint resNodeDrawFlags, byte wrapMode, ImageNodeFlags imageNodeFlags, [NotNullWhen(true)] out AtkImageNode* imageNode)
     {
         imageNode = IMemorySpace.GetUISpace()->Create<AtkImageNode>();
 
         if (imageNode is not null)
         {
-            imageNode->AtkResNode.Type = NodeType.Image;
-            imageNode->AtkResNode.NodeId = id;
+            imageNode->AtkResNode.Type      = NodeType.Image;
+            imageNode->AtkResNode.NodeId    = id;
             imageNode->AtkResNode.NodeFlags = resNodeFlags;
             imageNode->AtkResNode.DrawFlags = resNodeDrawFlags;
-            imageNode->WrapMode = wrapMode;
-            imageNode->Flags = imageNodeFlags;
+            imageNode->WrapMode             = wrapMode;
+            imageNode->Flags                = imageNodeFlags;
             return true;
         }
 
@@ -259,28 +261,28 @@ public static unsafe partial class UiHelper
 
     public static bool TryMakePartsList(uint id, [NotNullWhen(true)] out AtkUldPartsList* partsList)
     {
-        partsList = (AtkUldPartsList*) IMemorySpace.GetUISpace()->Malloc((ulong) sizeof(AtkUldPartsList), 8);
+        partsList = (AtkUldPartsList*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkUldPartsList), 8);
 
         if (partsList is not null)
         {
-            partsList->Id = id;
+            partsList->Id        = id;
             partsList->PartCount = 0;
-            partsList->Parts = null;
+            partsList->Parts     = null;
             return true;
         }
 
         return false;
     }
-    
+
     public static bool TryMakePart(ushort u, ushort v, ushort width, ushort height, [NotNullWhen(true)] out AtkUldPart* part)
     {
         part = (AtkUldPart*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkUldPart), 8);
 
         if (part is not null)
         {
-            part->U = u;
-            part->V = v;
-            part->Width = width;
+            part->U      = u;
+            part->V      = v;
+            part->Width  = width;
             part->Height = height;
             return true;
         }
@@ -305,53 +307,45 @@ public static unsafe partial class UiHelper
     #endregion
 
     #region AddComponents
-    
-    public static void AddPartsList(AtkImageNode* imageNode, AtkUldPartsList* partsList)
-    {
+
+    public static void AddPartsList(AtkImageNode* imageNode, AtkUldPartsList* partsList) =>
         imageNode->PartsList = partsList;
-    }
-    
-    public static void AddPartsList(AtkCounterNode* counterNode, AtkUldPartsList* partsList)
-    {
+
+    public static void AddPartsList(AtkCounterNode* counterNode, AtkUldPartsList* partsList) =>
         counterNode->PartsList = partsList;
-    }
-    
+
     public static void AddPart(AtkUldPartsList* partsList, AtkUldPart* part)
     {
         // copy pointer to old array
         var oldPartArray = partsList->Parts;
-        
+
         // allocate space for new array
-        var newSize = partsList->PartCount + 1;
-        var newArray = (AtkUldPart*) IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkUldPart) * newSize, 8);
+        var newSize  = partsList->PartCount + 1;
+        var newArray = (AtkUldPart*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkUldPart) * newSize, 8);
 
         if (oldPartArray is not null)
         {
             // copy each member of old array2
-            foreach (var index in Enumerable.Range(0, (int)partsList->PartCount))
-            {
-                Buffer.MemoryCopy(oldPartArray + index, newArray + index, sizeof(AtkUldPart), sizeof(AtkUldPart));
-            }
-        
+            foreach (var index in Enumerable.Range
+                         (0, (int)partsList->PartCount)) Buffer.MemoryCopy(oldPartArray + index, newArray + index, sizeof(AtkUldPart), sizeof(AtkUldPart));
+
             // free old array
             IMemorySpace.Free(oldPartArray, (ulong)sizeof(AtkUldPart) * partsList->PartCount);
         }
-        
+
         // add new part
         Buffer.MemoryCopy(part, newArray + (newSize - 1), sizeof(AtkUldPart), sizeof(AtkUldPart));
-        partsList->Parts = newArray;
+        partsList->Parts     = newArray;
         partsList->PartCount = newSize;
     }
-    
-    public static void AddAsset(AtkUldPart* part, AtkUldAsset* asset)
-    {
+
+    public static void AddAsset(AtkUldPart* part, AtkUldAsset* asset) =>
         part->UldAsset = asset;
-    }
-    
+
     #endregion
 
     #region FreeNodeComponents
-    
+
     public static void FreeImageNode(AtkImageNode* node)
     {
         node->AtkResNode.Destroy(false);
@@ -363,29 +357,25 @@ public static unsafe partial class UiHelper
         node->AtkResNode.Destroy(false);
         IMemorySpace.Free(node, (ulong)sizeof(AtkTextNode));
     }
-    
+
     public static void FreePartsList(AtkUldPartsList* partsList)
     {
         foreach (var index in Enumerable.Range(0, (int)partsList->PartCount))
         {
             var part = &partsList->Parts[index];
-            
+
             FreeAsset(part->UldAsset);
             FreePart(part);
         }
-        
+
         IMemorySpace.Free(partsList, (ulong)sizeof(AtkUldPartsList));
     }
-    
-    public static void FreePart(AtkUldPart* part)
-    {
+
+    public static void FreePart(AtkUldPart* part) =>
         IMemorySpace.Free(part, (ulong)sizeof(AtkUldPart));
-    }
-    
-    public static void FreeAsset(AtkUldAsset* asset)
-    {
-        IMemorySpace.Free(asset, (ulong) sizeof(AtkUldAsset));
-    }
-    
+
+    public static void FreeAsset(AtkUldAsset* asset) =>
+        IMemorySpace.Free(asset, (ulong)sizeof(AtkUldAsset));
+
     #endregion
 }

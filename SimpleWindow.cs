@@ -1,31 +1,33 @@
 using Dalamud.Interface.Windowing;
 
-namespace SimpleTweaksPlugin;
+namespace STPDebug;
 
-public abstract class SimpleWindow : Window {
-    
+public abstract class SimpleWindow : Window
+{
     private bool isCollapsed;
 
-    protected SimpleWindow(string name) : base(name) {
+    protected SimpleWindow(string name) : base(name)
+    {
 
     }
-    
-    public void UnCollapseOrToggle() {
-        if (isCollapsed) {
+
+    public void UnCollapseOrToggle()
+    {
+        if (isCollapsed)
+        {
             isCollapsed = false;
-            Collapsed = false;
-            IsOpen = true;
-        } else {
-            Toggle();
+            Collapsed   = false;
+            IsOpen      = true;
         }
+        else Toggle();
     }
 
-    public override void Update() {
+    public override void Update() =>
         isCollapsed = true;
-    }
 
-    public override void Draw() {
+    public override void Draw()
+    {
         isCollapsed = false;
-        Collapsed = null;
+        Collapsed   = null;
     }
 }
