@@ -19,14 +19,7 @@ using Dalamud.Memory;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using InteropGenerator.Runtime.Attributes;
 using SimpleTweaksPlugin.Debugging;
-using SimpleTweaksPlugin.TweakSystem;
 using SimpleTweaksPlugin.Utility;
-
-namespace SimpleTweaksPlugin {
-    public partial class SimpleTweaksPluginConfig {
-        public DebugConfig Debugging = new DebugConfig();
-    }
-}
 
 namespace SimpleTweaksPlugin.Debugging {
     public partial class DebugConfig {
@@ -44,24 +37,16 @@ namespace SimpleTweaksPlugin.Debugging {
         public virtual void Dispose() { }
 
         public virtual void Reload() { }
-
-        public string FullName {
-            get {
-                if (TweakProvider is CustomTweakProvider ctp) {
-                    return $"[{ctp.Assembly.GetName().Name}] {Name}";
-                }
-
-                return Name;
-            }
-        }
-
-        public TweakProvider TweakProvider = null!;
     }
 
     public static class DebugManager {
-        private static Dictionary<string, Action> debugPages = new();
+        private static readonly Dictionary<string, Action> debugPages = new();
+        private static readonly List<DebugHelper> DebugHelpers = [];
 
         private static float sidebarSize;
+        private static bool _setupDebugHelpers;
+        private static SimpleTweaksPlugin _plugin = null!;
+        private static readonly Stopwatch initDelay = Stopwatch.StartNew();
 
         public static void RegisterDebugPage(string key, Action action) {
             if (debugPages.ContainsKey(key)) {
@@ -82,41 +67,10 @@ namespace SimpleTweaksPlugin.Debugging {
         }
 
         public static void Reload() {
-            DebugHelpers.RemoveAll(dh => {
-                if (!dh.TweakProvider.IsDisposed) return false;
-                RemoveDebugPage(dh.FullName);
-                dh.Dispose();
-                return true;
-            });
-
-            foreach (var tp in SimpleTweaksPlugin.Plugin.TweakProviders) {
-                if (tp.IsDisposed) continue;
-
-                foreach (var t in tp.Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(DebugHelper)) && !t.IsAbstract)) {
-                    try {
-                        if (DebugHelpers.Any(h => h.GetType() == t)) continue;
-                        var debugger = (DebugHelper?) Activator.CreateInstance(t);
-                        if (debugger != null) {
-                            SignatureHelper.Initialise(debugger);
-                            debugger.TweakProvider = tp;
-                            debugger.Plugin = _plugin;
-                            RegisterDebugPage(debugger.FullName, debugger.Draw);
-                            DebugHelpers.Add(debugger);
-                        }
-                    } catch (Exception ex) {
-                        SimpleLog.Error(ex, $"Failed to register debug page with type {t.FullName}");
-                    }
-                }
-            }
-            
-            DebugHelpers.ForEach(dh => dh.Reload());
+            ClearDebugHelpers();
+            SetupDebugHelpers();
+            DebugHelpers.ForEach(helper => helper.Reload());
         }
-
-        private static SimpleTweaksPlugin _plugin;
-
-        private static bool _setupDebugHelpers;
-
-        private static readonly List<DebugHelper> DebugHelpers = new List<DebugHelper>();
 
         public static void SetPlugin(SimpleTweaksPlugin plugin) {
             _plugin = plugin;
@@ -126,33 +80,11 @@ namespace SimpleTweaksPlugin.Debugging {
             Service.PluginInterface.UiBuilder.Draw += DrawUndockedPages;
         }
 
-        private static Stopwatch initDelay = Stopwatch.StartNew();
-
         public static void DrawDebugWindow() {
             if (initDelay.ElapsedMilliseconds < 500) return;
             if (_plugin == null) return;
-            if (!_setupDebugHelpers) {
-                _setupDebugHelpers = true;
-                try {
-                    foreach (var tp in SimpleTweaksPlugin.Plugin.TweakProviders) {
-                        if (tp.IsDisposed) continue;
-                        foreach (var t in tp.Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(DebugHelper)) && !t.IsAbstract)) {
-                            var debugger = (DebugHelper?) Activator.CreateInstance(t);
-                            if (debugger == null) continue;
-                            debugger.TweakProvider = tp;
-                            debugger.Plugin = _plugin;
-                            RegisterDebugPage(debugger.FullName, debugger.Draw);
-                            DebugHelpers.Add(debugger);
-                        }
-                    }
-                } catch (Exception ex) {
-                    SimpleLog.Error(ex);
-                    _setupDebugHelpers = false;
-                    DebugHelpers.Clear();
-                    _plugin.DebugWindow.IsOpen = false;
-                    return;
-                }
-            }
+            SetupDebugHelpers();
+            if (!_setupDebugHelpers) return;
 
             if (sidebarSize < 150) {
                 sidebarSize = 150;
@@ -190,6 +122,8 @@ namespace SimpleTweaksPlugin.Debugging {
                         if (!_plugin.PluginConfig.Debugging.Undocked.Remove(k)) {
                             _plugin.PluginConfig.Debugging.Undocked.Add(k);
                         }
+
+                        _plugin.PluginConfig.Save();
                     }
                 }
             }
@@ -199,7 +133,7 @@ namespace SimpleTweaksPlugin.Debugging {
 
             if (ImGui.BeginChild("###debugView", new Vector2(-1, -1), true, ImGuiWindowFlags.HorizontalScrollbar)) {
                 if (string.IsNullOrEmpty(_plugin.PluginConfig.Debugging.SelectedPage) || !debugPages.ContainsKey(_plugin.PluginConfig.Debugging.SelectedPage)) {
-                    ImGui.Text("Select Debug Page");
+                    ImGui.Text("请选择调试页面。");
                 } else {
                     try {
                         debugPages[_plugin.PluginConfig.Debugging.SelectedPage]();
@@ -214,14 +148,47 @@ namespace SimpleTweaksPlugin.Debugging {
         }
 
         public static void Dispose() {
+            ClearDebugHelpers();
+            Service.PluginInterface.UiBuilder.Draw -= DrawUndockedPages;
+        }
+
+        private static void SetupDebugHelpers() {
+            if (_setupDebugHelpers || _plugin == null) return;
+
+            try {
+                foreach (var type in _plugin.GetType().Assembly.GetTypes()
+                             .Where(type => type.IsSubclassOf(typeof(DebugHelper)) && !type.IsAbstract)
+                             .OrderBy(type => type.FullName, StringComparer.Ordinal)) {
+                    var debugger = (DebugHelper?)Activator.CreateInstance(type);
+                    if (debugger == null) {
+                        continue;
+                    }
+
+                    SignatureHelper.Initialise(debugger);
+                    debugger.Plugin = _plugin;
+                    RegisterDebugPage(debugger.Name, debugger.Draw);
+                    DebugHelpers.Add(debugger);
+                }
+
+                _setupDebugHelpers = true;
+            } catch (Exception ex) {
+                SimpleLog.Error(ex, "初始化调试页面失败。");
+                _setupDebugHelpers = false;
+                ClearDebugHelpers();
+                _plugin.DebugWindow.IsOpen = false;
+            }
+        }
+
+        private static void ClearDebugHelpers() {
             foreach (var debugger in DebugHelpers) {
-                RemoveDebugPage(debugger.FullName);
+                RemoveDebugPage(debugger.Name);
                 debugger.Dispose();
             }
 
             DebugHelpers.Clear();
             debugPages.Clear();
-            Service.PluginInterface.UiBuilder.Draw -= DrawUndockedPages;
+            sidebarSize = 0;
+            _setupDebugHelpers = false;
         }
 
         private static unsafe Vector2 GetNodePosition(AtkResNode* node) {
@@ -814,6 +781,7 @@ namespace SimpleTweaksPlugin.Debugging {
 
             if (!string.IsNullOrEmpty(closedWindow)) {
                 _plugin.PluginConfig.Debugging.Undocked.Remove(closedWindow);
+                _plugin.PluginConfig.Save();
             }
         }
     }

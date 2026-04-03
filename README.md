@@ -1,8 +1,15 @@
-# Simple Tweaks
-Simple Tweaks is a plugin for Dalamud that started as a way to create small additions without creating an entire plugin for a couple lines of code.
-Now, Simple Tweaks has grown to the point that the whole plugin should probably be renamed, but I think it can stay as Simple Tweaks and the name can be a little joke.
+# Simple Tweaks Debug
 
-Simple Tweaks aims to improve quality of life when playing the game by making small changes that improve the experience. 
+这是一个仅保留调试器能力的 `Simple Tweaks` 精简分支。
 
+当前分支的目标是：
 
-## [Tweak List](Tweaks.md)
+- 只保留插件启动、调试窗口和调试页面。
+- 删除所有面向玩家的 tweak 功能、配置界面、统计与本地化链路。
+- 尽量保留仓库顶层结构，方便后续同步上游调试器相关改动。
+
+构建时请始终使用解决方案：
+
+```powershell
+dotnet build .\SimpleTweaksPlugin.sln -c Debug -p:Platform=x64
+```

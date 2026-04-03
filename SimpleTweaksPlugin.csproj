@@ -10,7 +10,6 @@
         <OutDir>$(ProjectDir)bin/Debug</OutDir>
     </PropertyGroup>
 	<ItemGroup>
-        <ProjectReference Include="lib\KamiToolKit\KamiToolKit.csproj" />
         <Reference Include="JetBrains.Annotations">
             <Private>false</Private>
             <HintPath>$(DalamudLibPath)\JetBrains.Annotations.dll</HintPath>

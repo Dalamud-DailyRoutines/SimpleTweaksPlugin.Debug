@@ -137,16 +137,16 @@ public unsafe class AgentDebug : DebugHelper {
                 .ToArray()))
             .Where(t => t.Item2.Length > 0));
 
-        foreach (var tp in SimpleTweaksPlugin.Plugin.TweakProviders) {
-            agentTypes.AddRange(tp.Assembly.GetTypes()
-                .Select((t) => (t, t.GetCustomAttributes(typeof(AgentAttribute))
-                    .Cast<AgentAttribute>()
-                    .Select(a => a.Id)
-                    .ToArray()))
-                .Where(t => t.Item2.Length > 0));
-        }
+        agentTypes.AddRange(typeof(SimpleTweaksPlugin).Assembly.GetTypes()
+            .Select((t) => (t, t.GetCustomAttributes(typeof(AgentAttribute))
+                .Cast<AgentAttribute>()
+                .Select(a => a.Id)
+                .ToArray()))
+            .Where(t => t.Item2.Length > 0));
 
-        return agentTypes.ToArray();
+        return agentTypes
+            .DistinctBy(entry => entry.Item1)
+            .ToArray();
     }
 
     private void BuildSortedAgentList() {

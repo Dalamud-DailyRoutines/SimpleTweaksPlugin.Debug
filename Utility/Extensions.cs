@@ -16,9 +16,6 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.Interop;
 using FFXIVClientStructs.STD;
-using Lumina.Excel;
-using SimpleTweaksPlugin.Sheets;
-using SimpleTweaksPlugin.TweakSystem;
 using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
 namespace SimpleTweaksPlugin.Utility; 
@@ -30,16 +27,6 @@ public static class Extensions {
         if ((member.Length <= 0)) return @enum.ToString();
         var attribs = member[0].GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false);
         return attribs.Length > 0 ? ((System.ComponentModel.DescriptionAttribute)attribs[0]).Description : @enum.ToString();
-    }
-
-    public static bool TryGetTooltip(this Enum @enum, [NotNullWhen(true)] out string? tooltip) {
-        tooltip = string.Empty;
-        var eType = @enum.GetType();
-        var member = eType.GetMember(@enum.ToString());
-        if (member.Length <= 0) return false;
-        var attribs = member[0].GetCustomAttributes(typeof(EnumTooltipAttribute), false);
-        tooltip =  attribs.Length > 0 ? ((EnumTooltipAttribute)attribs[0]).Text : null;
-        return tooltip != null;
     }
 
     public static unsafe string GetString(this Utf8String utf8String) {
@@ -203,8 +190,6 @@ public static class Extensions {
 
         return null;
     }
-
-    public static TExtension GetExtension<TExtension, TBase>(this TBase row) where TExtension : struct, IExcelRow<TExtension>, IRowExtension<TExtension, TBase> where TBase : struct, IExcelRow<TBase> => TExtension.GetExtended(row);
 
     public static bool TryGetAttribute<TAttribute>(this Type type, [NotNullWhen(true)] out TAttribute? attribute) where TAttribute : Attribute {
         attribute = type.GetCustomAttribute<TAttribute>();
