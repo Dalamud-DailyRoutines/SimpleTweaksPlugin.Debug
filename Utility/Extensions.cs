@@ -16,7 +16,6 @@ using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.Interop;
 using FFXIVClientStructs.STD;
-using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
 namespace STPDebug.Utility;
 
@@ -95,8 +94,10 @@ public static class Extensions
 
     public static void Replace(this List<byte> byteList, IEnumerable<byte> search, IEnumerable<byte> replace)
     {
+        var enumerable = search as byte[] ?? search.ToArray();
+
         for (var i = 0; i < byteList.Count; i++)
-            if (Equals(byteList.Skip(i).Take(search.Count()), search))
+            if (Equals(byteList.Skip(i).Take(enumerable.Length), search))
             {
 
             }
@@ -199,15 +200,15 @@ public static class Extensions
     {
         return v.Type switch
                {
-                   ValueType.Int           => $"{v.Int}",
-                   ValueType.String        => Marshal.PtrToStringUTF8(new IntPtr(v.String)),
-                   ValueType.UInt          => $"{v.UInt}",
-                   ValueType.Bool          => $"{v.Byte != 0}",
-                   ValueType.Float         => $"{v.Float}",
-                   ValueType.Vector        => "[Vector]",
-                   ValueType.ManagedString => Marshal.PtrToStringUTF8(new IntPtr(v.String))?.TrimEnd('\0') ?? string.Empty,
-                   ValueType.ManagedVector => "[Managed Vector]",
-                   _                       => $"Unknown Type: {v.Type}"
+                   AtkValueType.Int           => $"{v.Int}",
+                   AtkValueType.String        => Marshal.PtrToStringUTF8(new IntPtr(v.String)),
+                   AtkValueType.UInt          => $"{v.UInt}",
+                   AtkValueType.Bool          => $"{v.Byte != 0}",
+                   AtkValueType.Float         => $"{v.Float}",
+                   AtkValueType.Vector        => "[Vector]",
+                   AtkValueType.ManagedString => Marshal.PtrToStringUTF8(new IntPtr(v.String))?.TrimEnd('\0') ?? string.Empty,
+                   AtkValueType.ManagedVector => "[Managed Vector]",
+                   _                          => $"Unknown Type: {v.Type}"
                } ??
                string.Empty;
     }
@@ -234,12 +235,12 @@ public static class Extensions
         return attribute != null;
     }
 
-    public static bool IsPressed(this AtkEventData.AtkMouseData.ModifierFlag modifierFlag)
+    public static bool IsPressed(this ModifierFlag modifierFlag)
     {
         return
-            Service.KeyState[VirtualKey.SHIFT]   == modifierFlag.HasFlag(AtkEventData.AtkMouseData.ModifierFlag.Shift) &&
-            Service.KeyState[VirtualKey.MENU]    == modifierFlag.HasFlag(AtkEventData.AtkMouseData.ModifierFlag.Alt)   &&
-            Service.KeyState[VirtualKey.CONTROL] == modifierFlag.HasFlag(AtkEventData.AtkMouseData.ModifierFlag.Ctrl);
+            Service.KeyState[VirtualKey.SHIFT]   == modifierFlag.HasFlag(ModifierFlag.Shift) &&
+            Service.KeyState[VirtualKey.MENU]    == modifierFlag.HasFlag(ModifierFlag.Alt)   &&
+            Service.KeyState[VirtualKey.CONTROL] == modifierFlag.HasFlag(ModifierFlag.Ctrl);
     }
 
 

@@ -167,8 +167,10 @@ public static class ImGuiExt
         var colorSheet = Service.Data.Excel.GetSheet<UIColor>();
 
         if (!colorSheet.TryGetRow(colourKey, out var currentColor))
+        {
             if (!colorSheet.TryGetRow(0, out currentColor))
                 return false;
+        }
 
         var id = ImGui.GetID(label);
 
@@ -273,7 +275,7 @@ public static class ImGuiExt
         }
     }
 
-    public static bool ModifierFlagEditor(ref AtkEventData.AtkMouseData.ModifierFlag tweakConfigPanModifier, bool allowNone = false)
+    public static bool ModifierFlagEditor(ref ModifierFlag tweakConfigPanModifier, bool allowNone = false)
     {
         var e = false;
 
@@ -286,13 +288,13 @@ public static class ImGuiExt
                 using (ImRaii.PushColor
                        (
                            ImGuiCol.Text,
-                           tweakConfigPanModifier.HasFlag(AtkEventData.AtkMouseData.ModifierFlag.Shift) ? ImGuiColors.HealerGreen : ImGuiColors.DPSRed
+                           tweakConfigPanModifier.HasFlag(ModifierFlag.Shift) ? ImGuiColors.HealerGreen : ImGuiColors.DPSRed
                        ))
                 {
                     if (ImGui.Button($"SHIFT", btnSize))
                     {
-                        tweakConfigPanModifier ^= AtkEventData.AtkMouseData.ModifierFlag.Shift;
-                        if (!allowNone && tweakConfigPanModifier == 0) tweakConfigPanModifier = AtkEventData.AtkMouseData.ModifierFlag.Shift;
+                        tweakConfigPanModifier ^= ModifierFlag.Shift;
+                        if (!allowNone && tweakConfigPanModifier == 0) tweakConfigPanModifier = ModifierFlag.Shift;
                         e = true;
                     }
                 }
@@ -302,13 +304,13 @@ public static class ImGuiExt
                 using (ImRaii.PushColor
                        (
                            ImGuiCol.Text,
-                           tweakConfigPanModifier.HasFlag(AtkEventData.AtkMouseData.ModifierFlag.Ctrl) ? ImGuiColors.HealerGreen : ImGuiColors.DPSRed
+                           tweakConfigPanModifier.HasFlag(ModifierFlag.Ctrl) ? ImGuiColors.HealerGreen : ImGuiColors.DPSRed
                        ))
                 {
                     if (ImGui.Button("CTRL", btnSize))
                     {
-                        tweakConfigPanModifier ^= AtkEventData.AtkMouseData.ModifierFlag.Ctrl;
-                        if (!allowNone && tweakConfigPanModifier == 0) tweakConfigPanModifier = AtkEventData.AtkMouseData.ModifierFlag.Ctrl;
+                        tweakConfigPanModifier ^= ModifierFlag.Ctrl;
+                        if (!allowNone && tweakConfigPanModifier == 0) tweakConfigPanModifier = ModifierFlag.Ctrl;
                         e = true;
                     }
                 }
@@ -318,13 +320,13 @@ public static class ImGuiExt
                 using (ImRaii.PushColor
                        (
                            ImGuiCol.Text,
-                           tweakConfigPanModifier.HasFlag(AtkEventData.AtkMouseData.ModifierFlag.Alt) ? ImGuiColors.HealerGreen : ImGuiColors.DPSRed
+                           tweakConfigPanModifier.HasFlag(ModifierFlag.Alt) ? ImGuiColors.HealerGreen : ImGuiColors.DPSRed
                        ))
                 {
                     if (ImGui.Button("ALT", btnSize))
                     {
-                        tweakConfigPanModifier ^= AtkEventData.AtkMouseData.ModifierFlag.Alt;
-                        if (!allowNone && tweakConfigPanModifier == 0) tweakConfigPanModifier = AtkEventData.AtkMouseData.ModifierFlag.Alt;
+                        tweakConfigPanModifier ^= ModifierFlag.Alt;
+                        if (!allowNone && tweakConfigPanModifier == 0) tweakConfigPanModifier = ModifierFlag.Alt;
                         e = true;
                     }
                 }

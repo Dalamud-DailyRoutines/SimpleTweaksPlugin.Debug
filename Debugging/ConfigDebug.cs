@@ -60,8 +60,10 @@ public unsafe class ConfigDebug : DebugHelper
                     name = MemoryHelper.ReadStringNullTerminated(new IntPtr(configEntry->Name));
 
                 if (!string.IsNullOrWhiteSpace(nameSearchString))
+                {
                     if (!name.Contains(nameSearchString, StringComparison.InvariantCultureIgnoreCase))
                         goto Continue;
+                }
 
                 if (configEntry->Type == 1 && string.IsNullOrWhiteSpace(nameSearchString))
                 {
@@ -302,8 +304,10 @@ public unsafe class ConfigDebug : DebugHelper
                             if (ImGui.Button("Copy to Clipboard")) ImGui.SetClipboardText($"{sb}");
 
                             if (ImGui.BeginChild("generateScroll", ImGui.GetContentRegionAvail(), true))
+                            {
                                 foreach (var s in sb.ToString().Split('\n'))
                                     ImGui.Text($"{s.TrimEnd()}");
+                            }
 
                             ImGui.EndChild();
                         }
@@ -390,8 +394,11 @@ public enum UiControlOption
         if (ImGui.Button("Clear")) changes.Clear();
 
         if (ImGui.BeginChild("changes", ImGui.GetContentRegionAvail(), true))
+        {
             foreach (var s in changes)
                 ImGui.Text($"{s}");
+        }
+
         ImGui.EndChild();
 
 

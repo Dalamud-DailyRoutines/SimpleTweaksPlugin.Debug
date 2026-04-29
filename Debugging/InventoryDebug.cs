@@ -24,8 +24,11 @@ public unsafe class InventoryDebug : DebugHelper
                 {
 
                     foreach (var i in (InventoryType[])Enum.GetValues(typeof(InventoryType)))
+                    {
                         if (ImGui.Selectable($"{i} [{(int)i}]##inventoryTypeSelect", i == inventoryType))
                             inventoryType = i;
+                    }
+
                     ImGui.EndCombo();
                 }
 

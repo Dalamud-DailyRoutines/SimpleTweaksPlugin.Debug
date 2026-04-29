@@ -61,8 +61,10 @@ public unsafe class GearsetDebug : DebugHelper
             ImGui.NextColumn();
 
             foreach (RaptureGearsetModule.GearsetFlag r in Enum.GetValues(typeof(RaptureGearsetModule.GearsetFlag)))
+            {
                 if (gearset->Flags.HasFlag(r))
                     ImGui.Text(r.ToString());
+            }
 
             ImGui.NextColumn();
             DebugManager.PrintOutObject(gearset);

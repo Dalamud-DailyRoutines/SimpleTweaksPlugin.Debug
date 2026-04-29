@@ -20,7 +20,6 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.Interop;
-using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
 namespace STPDebug.Utility;
 
@@ -35,7 +34,7 @@ public unsafe class Common
 
     public static           uint       ClientStructsVersion => CsVersion.Value;
     private static readonly Lazy<uint> CsVersion = new(() => (uint?)typeof(ThisAssembly).Assembly.GetName().Version?.Build ?? 0U);
-    
+
     public static void* ThrowawayOut { get; private set; } = (void*)Marshal.AllocHGlobal(1024);
 
     public static void Setup()
@@ -166,24 +165,24 @@ public unsafe class Common
                 switch (v)
                 {
                     case uint uintValue:
-                        atkValues[i].Type = ValueType.UInt;
+                        atkValues[i].Type = AtkValueType.UInt;
                         atkValues[i].UInt = uintValue;
                         break;
                     case int intValue:
-                        atkValues[i].Type = ValueType.Int;
+                        atkValues[i].Type = AtkValueType.Int;
                         atkValues[i].Int  = intValue;
                         break;
                     case float floatValue:
-                        atkValues[i].Type  = ValueType.Float;
+                        atkValues[i].Type  = AtkValueType.Float;
                         atkValues[i].Float = floatValue;
                         break;
                     case bool boolValue:
-                        atkValues[i].Type = ValueType.Bool;
+                        atkValues[i].Type = AtkValueType.Bool;
                         atkValues[i].Byte = (byte)(boolValue ? 1 : 0);
                         break;
                     case string stringValue:
                     {
-                        atkValues[i].Type = ValueType.String;
+                        atkValues[i].Type = AtkValueType.String;
                         var stringBytes = Encoding.UTF8.GetBytes(stringValue);
                         var stringAlloc = Marshal.AllocHGlobal(stringBytes.Length + 1);
                         Marshal.Copy(stringBytes, 0, stringAlloc, stringBytes.Length);
@@ -216,7 +215,7 @@ public unsafe class Common
         finally
         {
             for (var i = 0; i < values.Length; i++)
-                if (atkValues[i].Type == ValueType.String)
+                if (atkValues[i].Type == AtkValueType.String)
                     Marshal.FreeHGlobal(new IntPtr(atkValues[i].String));
 
             Marshal.FreeHGlobal(new IntPtr(atkValues));
@@ -248,7 +247,7 @@ public unsafe class Common
         finally
         {
             for (var i = 0; i < eventParams.Length; i++)
-                if (atkValues[i].Type == ValueType.String)
+                if (atkValues[i].Type == AtkValueType.String)
                     Marshal.FreeHGlobal(new IntPtr(atkValues[i].String));
 
             Marshal.FreeHGlobal(new IntPtr(atkValues));
@@ -351,9 +350,12 @@ public unsafe class Common
         foreach (var f in focusedList->Entries)
         {
             if (f.Value == null) continue;
+
             foreach (var u in unitBase)
+            {
                 if (u == f.Value)
                     return true;
+            }
         }
 
         return false;
@@ -419,7 +421,8 @@ public unsafe class Common
         if (_lockedCursorType != AtkCursor.CursorType.Arrow)
         {
             var cursor = AtkStage.Instance()->AtkCursor;
-            if (cursor.Type != _lockedCursorType) AtkStage.Instance()->AtkCursor.SetCursorType(_lockedCursorType, 1);
+            if (cursor.Type != _lockedCursorType)
+                AtkStage.Instance()->AtkCursor.SetCursorType(_lockedCursorType, true);
 
             return null;
         }

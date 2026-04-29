@@ -75,7 +75,7 @@ public sealed class STPDebug : IDalamudPlugin
 
         SetupCommands();
     }
-    
+
     private void SetupCommands()
     {
         Service.Commands.AddHandler
@@ -230,10 +230,8 @@ public sealed class STPDebug : IDalamudPlugin
         public string    Message   { get; init; } = string.Empty;
         public ulong     Count     { get; set; }  = 1;
 
-        public override bool Equals(object? obj)
-        {
-            return obj is CaughtError other && other.Message == Message && $"{other.Exception}" == $"{Exception}";
-        }
+        public override bool Equals(object? obj) =>
+            obj is CaughtError other && other.Message == Message && $"{other.Exception}" == $"{Exception}";
 
         public override int GetHashCode() => HashCode.Combine(Message, $"{Exception}");
     }

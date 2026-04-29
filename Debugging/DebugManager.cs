@@ -583,8 +583,10 @@ public static class DebugManager
         else
         {
             if (layoutKind == LayoutKind.Explicit)
+            {
                 if (f.GetCustomAttribute(typeof(FieldOffsetAttribute)) is FieldOffsetAttribute o)
                     offsetAddress = (ulong)o.Value;
+            }
 
             ImGui.PushStyleColor(ImGuiCol.Text, 0xFF888888);
 
@@ -616,11 +618,15 @@ public static class DebugManager
         else
         {
             if (fixedSizeArrayAttribute != null)
+            {
                 ImGui.TextColored
                     (new Vector4(0.2f, 0.9f, 0.9f, 1), $"{customTypeName ?? ParseTypeName(f.FieldType.GetElementType() ?? f.FieldType)}[{fixedSizeArraySize}]");
+            }
             else if (f.FieldType.IsArray && f.GetValue(obj) is Array arr)
+            {
                 ImGui.TextColored
                     (new Vector4(0.2f, 0.9f, 0.9f, 1), $"{customTypeName ?? ParseTypeName(f.FieldType.GetElementType() ?? f.FieldType)}[{arr?.Length ?? 0}]");
+            }
             else ImGui.TextColored(new Vector4(0.2f, 0.9f, 0.9f, 1), $"{customTypeName ?? ParseTypeName(f.FieldType)}");
         }
 
@@ -637,12 +643,15 @@ public static class DebugManager
         if (fixedSizeArrayAttribute != null)
         {
             bool isOpen;
+
             using (ImRaii.PushColor
                        (ImGuiCol.Text, 0xFF00FFFF))
+            {
                 isOpen = ImGui.TreeNode
                 (
                     $"{customTypeName ?? ParseTypeName(f.FieldType)}[{fixedSizeArraySize}]##print-fixedSizeArray-{addr + offsetAddress:X}-{string.Join("-", path)}"
                 );
+            }
 
             if (isOpen)
             {
@@ -727,8 +736,10 @@ public static class DebugManager
         }
 
         if (layoutKind == LayoutKind.Sequential && !f.IsStatic)
+        {
             if (!f.FieldType.IsGenericType)
                 offsetAddress += (ulong)Marshal.SizeOf(f.FieldType);
+        }
     }
 
     public static void PrintOutProperty(PropertyInfo p, LayoutKind layoutKind, ref ulong offsetAddress, ulong addr, object obj, List<string> path)

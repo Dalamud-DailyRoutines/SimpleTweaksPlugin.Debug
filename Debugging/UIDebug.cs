@@ -20,7 +20,6 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using STPDebug.Utility;
 using Action = System.Action;
 using AlignmentType = FFXIVClientStructs.FFXIV.Component.GUI.AlignmentType;
-using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
 #pragma warning disable 659
 
@@ -242,9 +241,12 @@ public unsafe class UIDebug : DebugHelper
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 32);
             ImGui.InputTextWithHint("###addressSearchInput", "Address Search", ref addressSearchInput, 18, ImGuiInputTextFlags.AutoSelectAll);
             ImGui.SameLine();
+
             if (ImGuiComponents.IconButton(FontAwesomeIcon.Search))
+            {
                 if (ulong.TryParse(addressSearchInput, NumberStyles.HexNumber | NumberStyles.AllowHexSpecifier, NumberFormatInfo.InvariantInfo, out var address))
                     FindByAddress(address);
+            }
         }
 
         ImGui.EndChild();
@@ -467,8 +469,10 @@ public unsafe class UIDebug : DebugHelper
         ImGui.SameLine();
 
         if (!AddonDebug.IsSetupHooked(atkUnitBase))
+        {
             if (ImGui.SmallButton("Hook Setup"))
                 AddonDebug.HookOnSetup(atkUnitBase);
+        }
 
         ImGui.SameLine(ImGuiExt.GetWindowContentRegionSize().X - 25);
 
@@ -537,14 +541,14 @@ public unsafe class UIDebug : DebugHelper
                             {
                                 case 0:
                                     break;
-                                case ValueType.Int:
+                                case AtkValueType.Int:
                                 {
                                     ImGui.Text($"{atkValue->Int}");
                                     break;
                                 }
-                                case ValueType.ManagedString:
-                                case ValueType.String8:
-                                case ValueType.String:
+                                case AtkValueType.ManagedString:
+                                case AtkValueType.String8:
+                                case AtkValueType.String:
                                 {
                                     if (atkValue->String.Value == null) ImGui.TextDisabled("null");
                                     else
@@ -555,17 +559,17 @@ public unsafe class UIDebug : DebugHelper
 
                                     break;
                                 }
-                                case ValueType.UInt:
+                                case AtkValueType.UInt:
                                 {
                                     ImGui.Text($"{atkValue->Int}");
                                     break;
                                 }
-                                case ValueType.Bool:
+                                case AtkValueType.Bool:
                                 {
                                     ImGui.Text($"{atkValue->Byte != 0}");
                                     break;
                                 }
-                                case ValueType.Pointer:
+                                case AtkValueType.Pointer:
                                 {
                                     DebugManager.PrintAddress(atkValue->Pointer);
                                     break;
@@ -598,11 +602,12 @@ public unsafe class UIDebug : DebugHelper
 
         object? addonObj;
 
-        if (addonName != null && AddonMapping.ContainsKey(addonName))
+        if (addonName != null && AddonMapping.TryGetValue(addonName, out var m))
         {
-            var m = AddonMapping[addonName];
-            if (m == null) addonObj = *atkUnitBase;
-            else addonObj           = Marshal.PtrToStructure(new IntPtr(atkUnitBase), m);
+            if (m == null)
+                addonObj = *atkUnitBase;
+            else
+                addonObj = Marshal.PtrToStructure(new IntPtr(atkUnitBase), m);
         }
         else if (addonName != null)
         {
@@ -950,9 +955,9 @@ public unsafe class UIDebug : DebugHelper
 
                     if (ImGui.TreeNode($"Texture##{(ulong)kernelTexture->D3D11ShaderResourceView:X}"))
                     {
-                        var textureSize = new Vector2(kernelTexture->ActualWidth, kernelTexture->ActualHeight);
 
                         /*
+                        var textureSize = new Vector2(kernelTexture->ActualWidth, kernelTexture->ActualHeight);
                         ImGui.Image(new IntPtr(kernelTexture->D3D11ShaderResourceView),
                             new Vector2(kernelTexture->ActualWidth, kernelTexture->ActualHeight));
                         */ // TODO: 7.3
@@ -1428,7 +1433,7 @@ public unsafe class UIDebug : DebugHelper
             ImGui.TreePop();
         }
 
-        if (ImGui.TreeNode($"{name} {data->LabelSetCount} Label Datas##{(ulong)node:X}"))
+        if (ImGui.TreeNode($"{name} {data->LabelSetCount} Label Data##{(ulong)node:X}"))
         {
             if (data->LabelSets != null)
             {
@@ -1589,9 +1594,12 @@ public unsafe class UIDebug : DebugHelper
                 }
 
                 var name = unitBase->NameString;
+
                 if (searching)
+                {
                     if (name == null || !name.ToLower().Contains(searchStr.ToLower()))
                         continue;
+                }
 
                 noResults = false;
 

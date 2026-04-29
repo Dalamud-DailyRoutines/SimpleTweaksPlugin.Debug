@@ -14,9 +14,12 @@ public unsafe class SimpleEvent : IDisposable
     public SimpleEvent(SimpleEventDelegate action)
     {
         var newParam = 0x53540000u;
+
         while (EventHandlers.ContainsKey(newParam))
+        {
             if (++newParam >= 0x53550000u)
                 throw new Exception("Too many event handlers...");
+        }
 
         ParamKey = newParam;
         Action   = action;

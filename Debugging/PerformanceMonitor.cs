@@ -72,8 +72,11 @@ public class PerformanceMonitor : DebugHelper
         if (ImGui.BeginCombo("Display Type", $"{_displayType}"))
         {
             foreach (var e in Enum.GetValues<DisplayType>())
+            {
                 if (ImGui.Selectable($"{e}", _displayType == e))
                     _displayType = e;
+            }
+
             ImGui.EndCombo();
         }
 
