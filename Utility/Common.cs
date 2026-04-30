@@ -42,8 +42,8 @@ public unsafe class Common
         LastCommandAddress = Service.SigScanner.GetStaticAddressFromSig("4C 8D 05 ?? ?? ?? ?? 49 8B D4 48 8B C8 E8 ?? ?? ?? ?? 83 EB 06");
         LastCommand        = (Utf8String*)LastCommandAddress;
 
-        updateCursorHook = Hook<AtkModuleUpdateCursor>("48 89 74 24 ?? 48 89 7C 24 ?? 41 56 48 83 EC 20 4C 8B F1 E8 ?? ?? ?? ?? 49 8B CE", UpdateCursorDetour);
-        updateCursorHook?.Enable();
+        UpdateCursorHook = Hook<AtkUnitManagerUpdateCursor>("48 89 74 24 ?? 48 89 7C 24 ?? 41 56 48 83 EC 20 4C 8B F1 E8 ?? ?? ?? ?? 49 8B CE", UpdateCursorDetour);
+        UpdateCursorHook?.Enable();
     }
 
     public static UIModule* UIModule => Framework.Instance()->GetUIModule();
@@ -369,18 +369,18 @@ public unsafe class Common
             ThrowawayOut = null;
         }
 
-        updateCursorHook?.Disable();
-        updateCursorHook?.Dispose();
+        UpdateCursorHook?.Disable();
+        UpdateCursorHook?.Dispose();
         httpClient?.Dispose();
     }
 
-    public const int UnitListCount = 18;
+    public const int UNIT_LIST_COUNT = 18;
 
     public static AtkUnitBase* GetAddonByID(uint id)
     {
         var unitManagers = &AtkStage.Instance()->RaptureAtkUnitManager->AtkUnitManager.DepthLayerOneList;
 
-        for (var i = 0; i < UnitListCount; i++)
+        for (var i = 0; i < UNIT_LIST_COUNT; i++)
         {
             var unitManager = &unitManagers[i];
 
@@ -410,24 +410,24 @@ public unsafe class Common
         return (T*)GetAgent(attr.Id);
     }
 
-    private delegate void* AtkModuleUpdateCursor(RaptureAtkModule* module);
+    private delegate void AtkUnitManagerUpdateCursor(AtkUnitManager* manager);
 
-    private static HookWrapper<AtkModuleUpdateCursor> updateCursorHook;
+    private static HookWrapper<AtkUnitManagerUpdateCursor> UpdateCursorHook;
 
-    private static AtkCursor.CursorType _lockedCursorType = AtkCursor.CursorType.Arrow;
+    private static AtkCursor.CursorType LockedCursorType = AtkCursor.CursorType.Arrow;
 
-    private static void* UpdateCursorDetour(RaptureAtkModule* module)
+    private static void UpdateCursorDetour(AtkUnitManager* module)
     {
-        if (_lockedCursorType != AtkCursor.CursorType.Arrow)
+        if (LockedCursorType != AtkCursor.CursorType.Arrow)
         {
             var cursor = AtkStage.Instance()->AtkCursor;
-            if (cursor.Type != _lockedCursorType)
-                AtkStage.Instance()->AtkCursor.SetCursorType(_lockedCursorType, true);
+            if (cursor.Type != LockedCursorType)
+                AtkStage.Instance()->AtkCursor.SetCursorType(LockedCursorType, true);
 
-            return null;
+            return;
         }
 
-        return updateCursorHook.Original(module);
+        UpdateCursorHook.Original(module);
     }
 
     public static void ForceMouseCursor(AtkCursor.CursorType cursorType)
@@ -438,15 +438,15 @@ public unsafe class Common
             return;
         }
 
-        _lockedCursorType = cursorType;
+        LockedCursorType = cursorType;
         AtkStage.Instance()->AtkCursor.SetCursorType(cursorType);
-        updateCursorHook?.Enable();
+        UpdateCursorHook?.Enable();
     }
 
     public static void UnforceMouseCursor()
     {
-        _lockedCursorType = AtkCursor.CursorType.Arrow;
-        updateCursorHook?.Disable();
+        LockedCursorType = AtkCursor.CursorType.Arrow;
+        UpdateCursorHook?.Disable();
     }
 
     public static string? GetTexturePath(AtkImageNode* imageNode)
